@@ -45,7 +45,7 @@ public class Tokenizer {
                 position++;
             }
             if(position >= input.length()){
-                throw new TokenizerException("Never closed the quotation marks");
+                throw new TokenizerException("String literal not properly close with quotation marks");
             }
             position++;
             
@@ -194,7 +194,7 @@ public class Tokenizer {
                 list.add(token.get());
                 return list;
         }else {
-                throw new TokenizerException("Character not recognized: " + input.charAt(position));
+            throw new TokenizerException("Character not recognized: " + input.charAt(position));
         }
     }
 
