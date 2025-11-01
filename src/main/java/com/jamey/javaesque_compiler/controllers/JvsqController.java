@@ -16,10 +16,16 @@ import com.jamey.javaesque_compiler.service.CompilerService;
 @RequestMapping("/")
 public class JvsqController {
 
+    private final CompilerService compilerService;
+
+    public JvsqController(CompilerService compilerService){
+        this.compilerService = compilerService;
+    }
+
     @PostMapping
-    public ResponseEntity<CompilationResultModel> compilerPost(@RequestBody JvsqModel newProgram){
+    public ResponseEntity<CompilationResultModel> runCompilation(@RequestBody JvsqModel newProgram){
         try{
-            String result = new CompilerService().compile(newProgram);
+            String result = compilerService.compile(newProgram);
             return ResponseEntity.ok(new CompilationResultModel(result, null));
         }catch (Exception e){
             if(e instanceof UnsupportedEncodingException){
