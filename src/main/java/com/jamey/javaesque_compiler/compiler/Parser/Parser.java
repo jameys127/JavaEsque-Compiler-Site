@@ -18,7 +18,7 @@ public class Parser {
         if(position >= 0 && position < tokens.size()){
             return tokens.get(position);
         }else{
-            throw new ParserException("Out of Tokens");
+            throw new ParserException("Unexpected end of input", position);
         }
     }
 
@@ -39,13 +39,13 @@ public class Parser {
                     list.add(new VardecStmt(type.result, name));
                     pos = type.position + 1;
                 }else{
-                    throw new ParserException("Expected an Identifier after the type in a variable declaration");
+                    throw new ParserException("Expected an Identifier after the type in a variable declaration", type.position);
                 }
             }
             assertTokenIs(pos, new RParenToken());
             return new ParseResult<List<VardecStmt>>(list, pos + 1);
         }else{
-            throw new ParserException("Expected an Identifier after the type in a variable declaration");
+            throw new ParserException("Expected an Identifier after the type in a variable declaration", type.position);
         }
     }
 
@@ -77,7 +77,7 @@ public class Parser {
         }else if(token instanceof QuoteToken){
             ParseResult<Exp> e = exp(position + 1);
             if(!(e.result instanceof VarExp)){
-                throw new ParserException("Expected valid String inside quotations");
+                throw new ParserException("Expected valid String inside quotations", e.position - 1);
             }else{
                 VarExp stringliteral = (VarExp)e.result;
                 assertTokenIs(e.position, new QuoteToken());
@@ -89,7 +89,7 @@ public class Parser {
                     String name = id.name();
                     return new ParseResult<Exp>(new ThisExp(Optional.of(name)), position + 3);
                 }else{
-                    throw new ParserException("Expected Identifier after 'this' call");
+                    throw new ParserException("Expected Identifier after 'this' call", position + 2);
                 }
             }
             return new ParseResult<Exp>(new ThisExp(Optional.empty()), position + 1);
@@ -124,12 +124,12 @@ public class Parser {
                 }
                 return new ParseResult<Exp>(new NewExp(classtype, Optional.empty()), pos + 1);
             }else{
-                throw new ParserException("Expected IdentifierToken after statement 'new'; Received: " + other.toString());
+                throw new ParserException("Expected IdentifierToken after statement 'new'; Received: " + other.toString(), position + 1);
             }
         }else if (token instanceof IdentifierToken id){
             return new ParseResult<Exp>(new VarExp(id.name()), position + 1);
         }else{
-            throw new ParserException("Expected Expression; Got: " + token);
+            throw new ParserException("Expected a valid expression; Got: " + token.toString(), position);
         }
 
     }
@@ -161,7 +161,7 @@ public class Parser {
                     MethodCall dummyMethod = new MethodCall(id.name(), exps);
                     methods.add(dummyMethod);
                 }else{
-                    throw new ParserException("Expected Identifier Token; Received: " + other.toString());
+                    throw new ParserException("Expected Identifier Token; Received: " + other.toString(), pos - 1);
                 }
                 try{
                     Token maybeDot = getToken(pos);
@@ -239,7 +239,7 @@ public class Parser {
                 }else if(t instanceof EqualityToken){
                     op = new EqualityOp();
                 }else {
-                    throw new ParserException("Unknown op");
+                    throw new ParserException("Unknown operation", pos);
                 }
                 final ParseResult<Exp> e2 = addExp(pos + 1);
                 result = new BinaryExp(result, op, e2.result);
@@ -319,7 +319,7 @@ public class Parser {
                     assertTokenIs(e.position + 1, new SemicolonToken());
                     return new ParseResult<Stmt>(new VardecStmt(e.result, id.name()), e.position + 2);
                 }else{
-                    throw new ParserException("Expected a Variable Identifier; Received: " + getToken(e.position));
+                    throw new ParserException("Expected a Variable Identifier; Received: " + getToken(e.position), e.position);
                 }
             }catch (ParserException error){
                 //nothin
@@ -351,7 +351,7 @@ public class Parser {
                 assertTokenIs(e.position, new SemicolonToken());
                 return new ParseResult<Stmt>(new ExpStmt(e.result), e.position + 1);
             }catch(ParserException error){
-                throw new ParserException("Not a valid Statement: " + error);
+                throw new ParserException("" + error, error.getPositionOfError());
             }
         }
     }
@@ -380,7 +380,7 @@ public class Parser {
             }
             return new ParseResult<MethodDef>(new MethodDef(name, vardecStmts, type.result, stmtList), pos + 1);
         }else{
-            throw new ParserException("Expected method Identifier Token after 'method'; Received: " + token.toString());
+            throw new ParserException("Expected method Identifier Token after 'method'; Received: " + token.toString(), position + 1);
         }
     }
 
@@ -443,7 +443,7 @@ public class Parser {
                     vardecList.add(x);
                     pos = stmt.position;
                 } catch(ParserException e){
-                    throw new ParserException("Statement is not a Variable Decleration; " + e.getMessage());
+                    throw new ParserException("Statement is not a Variable Decleration; " + e.getMessage(), pos);
                 }
             }
             ParseResult<Constructor> constructor = parseConstructor(pos);
@@ -455,7 +455,7 @@ public class Parser {
             }
             return new ParseResult<ClassDef>(new ClassDef(name, extend, vardecList, constructor.result, methodList), pos + 1);
         }else{
-            throw new ParserException("Expected an Identifier for the classname; Received: " + getToken(position + 1).toString());
+            throw new ParserException("Expected an Identifier for the classname; Received: " + getToken(position + 1).toString(), position + 1);
         }
     }
 
@@ -488,22 +488,22 @@ public class Parser {
                 stmts.add(stmtResult.result);
                 pos = stmtResult.position;
             } catch (ParserException e) {
-                throw new ParserException("Invalid statement at position " + pos + ": " + e.getMessage());
+                throw new ParserException("Invalid statement at position " + e.getPositionOfError() + ": " + e.getMessage(), 0);
             }
         }
 
         if(stmts.isEmpty()){
-            throw new ParserException("There needs to be atleast one statement in the program");
+            throw new ParserException("There needs to be atleast one statement in the program", 0);
         }
         return new ParseResult<Program>(new Program(classdefs, stmts), pos);
     }
 
     public Program parseWholeProgram() throws ParserException{
         final ParseResult<Program> p = parseProgram(0);
-        if(p.position ==tokens.size()){
+        if(p.position == tokens.size()){
             return p.result;
         } else {
-            throw new ParserException("Invalid token at position: " + p.position);
+            throw new ParserException("Invalid token at position: " + p.position, 0);
         }
     }
 
@@ -521,15 +521,14 @@ public class Parser {
             return new ParseResult<Type>(new ClassType(id.name()), position + 1);
         }else {
             throw new ParserException("Expected a DataType; received: "
-                                    + tokens.get(position).toString());
+                                    + tokens.get(position).toString(), position);
         }
     }
 
     public void assertTokenIs(final int pos, final Token expected) throws ParserException{
         final Token recieved = getToken(pos);
         if(!expected.equals(recieved)){
-            throw new ParserException("Expected: " + expected.toString() +
-                                      "; Received: " + recieved.toString());
+            throw new ParserException("Received token '" + recieved.toString() + "' is not valid. Did you mean: " + expected.toString() + "?", pos);
         }
     }
 }

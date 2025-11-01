@@ -187,7 +187,16 @@ public class Typechecker {
             }
         }
         else{
-            throw new TypecheckerErrorException("No such binary operation recognized");
+            try{
+                assertTypesEqual(left, right);
+                throw new TypecheckerErrorException("No such binary operation recognized");
+            }catch(TypecheckerErrorException e){
+                throw new TypecheckerErrorException("Binary operation failed for '" 
+                                                    + exp.l().toString() + " "
+                                                    + exp.op().toString() + " " 
+                                                    + exp.r().toString() + "' - " 
+                                                    + e.getMessage());
+            }
         }
     }
 
@@ -398,6 +407,12 @@ public class Typechecker {
                                           final Optional<ClassType> inClass) 
                                           throws TypecheckerErrorException{
         Map<Variable, Type> newMap = new HashMap<>();
+        if(method.type instanceof ClassType classType){
+            ClassDef verify = lookupClass(classType.name());
+            if(verify == null){
+                throw new TypecheckerErrorException("Method returns class type: '" + classType.name() + "' which doesn't exist");
+            }
+        }
         for(VardecStmt vardecs : method.vars){
             newMap = typecheckStmt(vardecs, newMap, inClass, false, Optional.of(method.type));
         }
