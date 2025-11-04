@@ -10,15 +10,20 @@ import com.jamey.javaesque_compiler.compiler.Parser.MethodCallExp.MethodCall;
 
 public class Typechecker {
 
-    private static Map<String, ClassDef> classDefinitions = new HashMap<>();
+    private Map<String, ClassDef> classDefinitions = new HashMap<>();
 
-    public static void putClassInMap(final String classname, final ClassDef classdef){
+    private Map<Variable, Integer> assignments = new HashMap<>();
+
+    public void putClassInMap(final String classname, final ClassDef classdef){
         classDefinitions.put(classname, classdef);
     }
-    public static ClassDef lookupClass(final String classname){
+    public ClassDef lookupClass(final String classname){
         return classDefinitions.get(classname);
     }
-    public static Map<Variable, Type> addToMap(final Map<Variable, Type> typeEnv,
+    public void putInAssignemnts(final Variable variable, final int integer){
+            assignments.put(variable, integer);
+    }
+    public Map<Variable, Type> addToMap(final Map<Variable, Type> typeEnv,
                                                final Variable variable,
                                                final Type type){
         final Map<Variable, Type> retval = new HashMap<Variable, Type>();
@@ -26,7 +31,7 @@ public class Typechecker {
         retval.put(variable, type);
         return retval;
     }
-    public static void assertTypesEqual(final Type expected, final Type received) throws TypecheckerErrorException{
+    public void assertTypesEqual(final Type expected, final Type received) throws TypecheckerErrorException{
         if(!(expected.equals(received)) && (expected instanceof ClassType && received instanceof ClassType)){
             ClassType receivedClass = (ClassType)received;
             ClassDef receivedClassDef = lookupClass(receivedClass.name());
@@ -63,7 +68,7 @@ public class Typechecker {
 /*************************************************************************************************/
 /*                                      EXP typechecking                                         */
 
-    public static Type typecheckExp(final Exp exp, 
+    public Type typecheckExp(final Exp exp, 
                                     final Map<Variable, Type> typeEnv,
                                     final Optional<ClassType> inClass)
                                      throws TypecheckerErrorException{
@@ -157,7 +162,7 @@ public class Typechecker {
         }
     }
 
-    public static Type typecheckBin(final BinaryExp exp,
+    public Type typecheckBin(final BinaryExp exp,
                                     final Map<Variable, Type> typeEnv,
                                     final Optional<ClassType> inClass)
                                     throws TypecheckerErrorException{
@@ -169,6 +174,12 @@ public class Typechecker {
             exp.op() instanceof DivOp) &&
             left instanceof IntType &&
             right instanceof IntType){
+            if(exp.l() instanceof VarExp l && assignments.get(new Variable(l.name())) == null){
+                throw new TypecheckerErrorException(exp.l().toString() + " was never initialized");
+            }
+            if(exp.r() instanceof VarExp r && assignments.get(new Variable(r.name())) == null){
+                throw new TypecheckerErrorException(exp.r().toString() + " was never initialized");
+            }
             return new IntType();
         }else if((exp.op() instanceof GreaterThanOp ||
                   exp.op() instanceof GreaterThanOrEqualOp ||
@@ -176,6 +187,12 @@ public class Typechecker {
                   exp.op() instanceof LessThanOrEqualOp) &&
                   left instanceof IntType &&
                   right instanceof IntType){
+            if(exp.l() instanceof VarExp l && assignments.get(new Variable(l.name())) == null){
+                throw new TypecheckerErrorException(exp.l().toString() + " was never initialized");
+            }
+            if(exp.r() instanceof VarExp r && assignments.get(new Variable(r.name())) == null){
+                throw new TypecheckerErrorException(exp.r().toString() + " was never initialized");
+            }
             return new BoolType();
         }else if(exp.op() instanceof EqualityOp){
             try{
@@ -200,7 +217,7 @@ public class Typechecker {
         }
     }
 
-    public static Type typecheckMethodCall(final MethodCallExp exp, 
+    public Type typecheckMethodCall(final MethodCallExp exp, 
                                            final Map<Variable, Type> typeEnv,
                                            final Optional<ClassType> inClass)
                                            throws TypecheckerErrorException{
@@ -289,7 +306,7 @@ public class Typechecker {
      * ReturnStmt - done
      * IfStmt - done
      */
-    public static Map<Variable, Type> typecheckStmt(final Stmt stmt,
+    public Map<Variable, Type> typecheckStmt(final Stmt stmt,
                                     final Map<Variable, Type> typeEnv,
                                     final Optional<ClassType> inClass,
                                     Boolean inLoop,
@@ -352,7 +369,7 @@ public class Typechecker {
         }
     }
 
-    public static Map<Variable, Type> typecheckVardec(final VardecStmt stmt,
+    public Map<Variable, Type> typecheckVardec(final VardecStmt stmt,
                                         final Map<Variable, Type> typeEnv)
                                         throws TypecheckerErrorException{
         Variable variable = new Variable(stmt.name());
@@ -362,7 +379,7 @@ public class Typechecker {
         }
         return addToMap(typeEnv, variable, type);
     }
-    public static Map<Variable, Type> typecheckWhile(final WhileStmt stmt,
+    public Map<Variable, Type> typecheckWhile(final WhileStmt stmt,
                                                      final Map<Variable, Type> typeEnv,
                                                      final Optional<ClassType> inClass,
                                                      Boolean inLoop,
@@ -375,7 +392,7 @@ public class Typechecker {
         }
         return typeEnv;
     }
-    public static Map<Variable, Type> typecheckAssign(final AssignStmt stmt,
+    public Map<Variable, Type> typecheckAssign(final AssignStmt stmt,
                                                       final Map<Variable, Type> typeEnv,
                                                       final Optional<ClassType> inClass)
                                                       throws TypecheckerErrorException{
@@ -389,6 +406,9 @@ public class Typechecker {
         if(typeEnv.containsKey(variable)){
             final Type expected = typeEnv.get(variable);
             assertTypesEqual(expected, typecheckExp(stmt.e(), typeEnv, inClass));
+            if(stmt.e() instanceof IntExp intExp){
+                putInAssignemnts(variable, intExp.value());
+            }
             return typeEnv;
         }else {
             throw new TypecheckerErrorException("Variable not in scope: " + stmt.name());
@@ -403,7 +423,7 @@ public class Typechecker {
 /***********************************************************************************************/
 /*                                    MethodDef typechecking                                   */
 
-    public static void typecheckMethodDef(final MethodDef method,
+    public void typecheckMethodDef(final MethodDef method,
                                           final Optional<ClassType> inClass) 
                                           throws TypecheckerErrorException{
         Map<Variable, Type> newMap = new HashMap<>();
@@ -424,7 +444,7 @@ public class Typechecker {
             "' must definitely return a value of type '" + method.type.toString() + "'");
         }
     }
-    public static boolean stmtsReturnProperly(List<Stmt> stmts){
+    public boolean stmtsReturnProperly(List<Stmt> stmts){
         Boolean ifbody = true;
         Boolean elsebody = true;
         Boolean returnStmt = false;
@@ -468,7 +488,7 @@ public class Typechecker {
 /***********************************************************************************************/
 /*                                     Constructor typechecking                                */
 
-    public static void typecheckConstructor(final ClassDef classdef)
+    public void typecheckConstructor(final ClassDef classdef)
                                             throws TypecheckerErrorException{
         Map<Variable, Type> typeEnv = new HashMap<>();
         List<VardecStmt> consVardecs = classdef.constructor.vardecs;
@@ -511,7 +531,7 @@ public class Typechecker {
 /***********************************************************************************************/
 /*                                      ClassDef typechecking                                  */
 
-    public static void typecheckClassDef(final ClassDef classdef)throws TypecheckerErrorException{
+    public void typecheckClassDef(final ClassDef classdef)throws TypecheckerErrorException{
         Map<Variable, Type> typeEnv = new HashMap<>();
         for(VardecStmt vardec : classdef.vardec){
             typeEnv = typecheckStmt(vardec, typeEnv, Optional.of(new ClassType(classdef.classname)), false, Optional.empty());
@@ -524,7 +544,7 @@ public class Typechecker {
             methodOverriding(classdef, lookupClass(classdef.extend.get()));   
         }
     }
-    public static void methodOverriding(ClassDef childClass, ClassDef parentClass) throws TypecheckerErrorException{
+    public void methodOverriding(ClassDef childClass, ClassDef parentClass) throws TypecheckerErrorException{
         for(MethodDef childmethod : childClass.methoddef){
             for(MethodDef parentmethod : parentClass.methoddef){
                 if(childmethod.methodname.equals(parentmethod.methodname)){
@@ -551,7 +571,7 @@ public class Typechecker {
             methodOverriding(childClass, lookupClass(parentClass.extend.get()));
         }
     }
-    public static boolean isSubtypeOrSameType(Type childType, Type parentType){
+    public boolean isSubtypeOrSameType(Type childType, Type parentType){
         if(childType.equals(parentType)){
             return true;
         }
@@ -579,7 +599,7 @@ public class Typechecker {
 /*                                    End ClassDef typechecking                                */
 /***********************************************************************************************/
 
-    public static void typecheckProgram(final Program program) throws TypecheckerErrorException{
+    public void typecheckProgram(final Program program) throws TypecheckerErrorException{
         for(ClassDef classes : program.classdefs){
             putClassInMap(classes.classname, classes);
         }

@@ -15,7 +15,7 @@ import com.jamey.javaesque_compiler.service.CompilerService;
 
 @RestController
 @RequestMapping("/")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://javaesquecompiler.dev")
 public class JvsqController {
 
     private final CompilerService compilerService;
