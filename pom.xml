@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.jamey</groupId>
 	<artifactId>javaesque-compiler</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<name>javaesque-compiler</name>
 	<description>Compiler backend for my custom language</description>
 	<url/>
@@ -41,7 +41,7 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.graalvm.polyglot</groupId>
 			<artifactId>polyglot</artifactId>
 			<version>24.1.0</version>
@@ -52,14 +52,41 @@
 			<artifactId>js-community</artifactId>
 			<version>24.1.0</version>
 			<type>pom</type>
+		</dependency> -->
+
+		<dependency>
+			<groupId>com.amazonaws.serverless</groupId>
+			<artifactId>aws-serverless-java-container-springboot3</artifactId>
+			<version>2.0.1</version>
 		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
+				<!-- <groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId> -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.5.1</version>
+				<configuration>
+					<createDependencyReducedPom>false</createDependencyReducedPom>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<excludes>
+									<exclude>org.apache.tomcat.embed:*</exclude>
+								</excludes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
