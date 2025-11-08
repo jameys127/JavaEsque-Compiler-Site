@@ -493,13 +493,16 @@ public class Parser {
         }
 
         if(stmts.isEmpty()){
-            throw new ParserException("There needs to be atleast one statement in the program", 0);
+            throw new ParserException("There needs to be at least one statement in the program", 0);
         }
         return new ParseResult<Program>(new Program(classdefs, stmts), pos);
     }
 
     public Program parseWholeProgram() throws ParserException{
         final ParseResult<Program> p = parseProgram(0);
+        if(p.result.stmts.isEmpty()){
+            throw new ParserException("There needs to be at least one statement in the program", 0);
+        }
         if(p.position == tokens.size()){
             return p.result;
         } else {

@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.jamey</groupId>
 	<artifactId>javaesque-compiler</artifactId>
-	<version>0.1.0</version>
+	<version>1.0.1</version>
 	<name>javaesque-compiler</name>
 	<description>Compiler backend for my custom language</description>
 	<url/>

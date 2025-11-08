@@ -409,6 +409,9 @@ public class Typechecker {
             if(stmt.e() instanceof IntExp intExp){
                 putInAssignemnts(variable, intExp.value());
             }
+            if(stmt.e() instanceof BinaryExp){
+                putInAssignemnts(variable, -1);
+            }
             return typeEnv;
         }else {
             throw new TypecheckerErrorException("Variable not in scope: " + stmt.name());
